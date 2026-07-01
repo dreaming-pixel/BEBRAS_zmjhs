@@ -39,6 +39,10 @@
                 <div class="progress-bar-outer">
                     <div class="progress-bar-inner" id="global-progress-bar" style="width: 0%;"></div>
                 </div>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="text-btn" id="btn-backup-student" style="font-size: 0.75rem; text-decoration: underline; color: var(--text-muted); cursor: pointer; padding: 2px 4px;">💾 備份進度</button>
+                    <button class="text-btn" id="btn-restore-student" style="font-size: 0.75rem; text-decoration: underline; color: var(--text-muted); cursor: pointer; padding: 2px 4px;">📥 還原進度</button>
+                </div>
             </div>
             <nav class="nav-links" style="display: flex; flex-direction: column; height: 100%;">
                 <button class="nav-btn active" id="nav-dashboard">🏠 主畫面</button>
@@ -220,7 +224,31 @@
                         <h2>🔑 系統管理員後台</h2>
                         <p>查看本機上所有學生的挑戰成績、通關細節與排名。</p>
                     </div>
-                    <button class="modal-btn secondary" id="btn-admin-logout" style="padding: 0.5rem 1rem;">🚪 退出管理員</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                        <button class="modal-btn secondary" id="btn-admin-logout" style="padding: 0.5rem 1rem; width: 100%;">🚪 退出管理員</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="modal-btn primary" id="btn-export-all-json" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background: var(--primary);">💾 匯出班級 JSON</button>
+                            <input type="file" id="admin-import-json-file" accept=".json" style="display: none;" />
+                            <button class="modal-btn secondary" id="btn-trigger-import-json" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">📥 匯入班級 JSON</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Sheets Sync Card -->
+                <div style="background: rgba(0,0,0,0.15); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; color: var(--success-light);">📊 Google 試算表即時同步 (雲端資料庫)</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+                        貼上您的 Google Apps Script (GAS) 部署網址，系統將自動開啟即時雲端同步。所有學生的登入進度、過關狀態會即時寫入您的 Google 試算表中，實現真正的跨載具免手動還原！
+                    </p>
+                    
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="admin-gas-url" placeholder="請貼上部署網址 (https://script.google.com/macros/s/.../exec)" style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; outline: none;" />
+                        <button class="modal-btn primary" id="btn-save-gas-url" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; background: var(--success); border-color: var(--success); border: none;">儲存連線 🔗</button>
+                    </div>
+                    
+                    <div id="gas-sync-status" style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+                        目前連線狀態：<span id="gas-connection-state" style="font-weight: bold; color: #ff8b8b;">未啟用雲端同步 (僅使用本機儲存)</span>
+                    </div>
                 </div>
 
                 <!-- Admin Student Registration Import Card -->

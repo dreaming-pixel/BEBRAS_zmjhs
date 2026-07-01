@@ -17,6 +17,7 @@ const App = {
     playerName: "",
     playerClass: "",
     allowedStudents: [], // Strict login registration roster
+    gasUrl: "", // Google Sheets Sync GAS Web App URL
     
     // Default unlocked state (Easy is true, others false)
     progress: {
@@ -63,6 +64,14 @@ const App = {
     },
 
     loadProgress() {
+        // Load GAS URL
+        const savedGas = localStorage.getItem('bebras_portal_gas_url');
+        this.gasUrl = savedGas || "";
+
+        const gasInput = document.getElementById('admin-gas-url');
+        if (gasInput) gasInput.value = this.gasUrl;
+        this.updateGasStatusUI();
+
         // Load allowed students roster
         const savedAllowed = localStorage.getItem('bebras_portal_allowed_students');
         if (savedAllowed) {
@@ -127,6 +136,11 @@ const App = {
             if (students[currentStudentKey]) {
                 students[currentStudentKey].progress = this.progress;
                 this.saveAllStudents(students);
+
+                // If cloud sync is enabled, sync to GAS in background
+                if (this.gasUrl) {
+                    this.syncStudentToCloud(this.playerClass, this.playerName, this.progress);
+                }
             }
         }
         localStorage.setItem('bebras_portal_progress', JSON.stringify(this.progress));
@@ -250,7 +264,7 @@ const App = {
         document.getElementById('global-progress-bar').style.width = `${pct}%`;
     },
 
-    loginStudent(studentClass, studentName) {
+    async loginStudent(studentClass, studentName) {
         if (!studentClass || !studentName) {
             alert("請輸入班級與姓名！");
             return;
@@ -273,14 +287,51 @@ const App = {
             }
         }
 
+        const btnLogin = document.getElementById('btn-login');
+        const origBtnText = btnLogin ? btnLogin.textContent : "開始挑戰 🚀";
+        if (btnLogin) {
+            btnLogin.disabled = true;
+            btnLogin.textContent = "雲端同步中...";
+        }
+
+        let cloudProgress = null;
+        if (this.gasUrl) {
+            try {
+                const res = await fetch(`${this.gasUrl}?action=get&class=${encodeURIComponent(studentClass)}&name=${encodeURIComponent(studentName)}`);
+                const json = await res.json();
+                if (json && json.status === 'success' && json.found) {
+                    cloudProgress = json.progress;
+                    console.log("Cloud progress loaded successfully:", cloudProgress);
+                }
+            } catch (e) {
+                console.error("Failed to fetch cloud progress:", e);
+            }
+        }
+
+        if (btnLogin) {
+            btnLogin.disabled = false;
+            btnLogin.textContent = origBtnText;
+        }
+
         this.playerClass = studentClass;
         this.playerName = studentName;
         
         const students = this.getAllStudents();
         const key = `${studentClass}_${studentName}`;
 
-        if (students[key]) {
+        if (cloudProgress) {
+            this.progress = cloudProgress;
+            students[key] = {
+                class: studentClass,
+                name: studentName,
+                progress: this.progress
+            };
+            this.saveAllStudents(students);
+        } else if (students[key]) {
             this.progress = students[key].progress;
+            if (this.gasUrl) {
+                this.syncStudentToCloud(studentClass, studentName, this.progress);
+            }
         } else {
             this.progress = {
                 stones: { easy: false, medium: false, hard: false },
@@ -296,6 +347,9 @@ const App = {
                 progress: this.progress
             };
             this.saveAllStudents(students);
+            if (this.gasUrl) {
+                this.syncStudentToCloud(studentClass, studentName, this.progress);
+            }
         }
 
         localStorage.setItem('bebras_portal_current_student', key);
@@ -314,6 +368,108 @@ const App = {
         this.playerClass = "";
         this.showLoginOverlay();
         this.switchView('dashboard');
+    },
+
+    exportStudentCode() {
+        const currentStudentKey = localStorage.getItem('bebras_portal_current_student');
+        if (!currentStudentKey) {
+            alert("請先登入後再進行備份！");
+            return "";
+        }
+        const students = this.getAllStudents();
+        const sData = students[currentStudentKey];
+        if (sData) {
+            const jsonStr = JSON.stringify({
+                class: sData.class,
+                name: sData.name,
+                progress: sData.progress
+            });
+            // Safe base64 encoding supporting Chinese characters
+            const base64 = btoa(encodeURIComponent(jsonStr));
+            return base64;
+        }
+        return "";
+    },
+
+    importStudentCode(code) {
+        if (!code) return false;
+        try {
+            const jsonStr = decodeURIComponent(atob(code.trim()));
+            const data = JSON.parse(jsonStr);
+            if (data.class && data.name && data.progress) {
+                const students = this.getAllStudents();
+                const key = `${data.class}_${data.name}`;
+                students[key] = {
+                    class: data.class,
+                    name: data.name,
+                    progress: data.progress
+                };
+                this.saveAllStudents(students);
+                
+                // Set as current student
+                localStorage.setItem('bebras_portal_current_student', key);
+                this.playerClass = data.class;
+                this.playerName = data.name;
+                this.progress = data.progress;
+                
+                // Hide login overlay
+                const overlay = document.getElementById('login-overlay');
+                if (overlay) overlay.classList.add('hidden');
+
+                // Clear login error msg if any
+                const loginErrorMsg = document.getElementById('login-error-msg');
+                if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+
+                this.switchView('dashboard');
+                this.updateProgressUI();
+                alert("🎉 個人進度還原成功！");
+                return true;
+            }
+        } catch (e) {
+            console.error("Import error:", e);
+            alert("❌ 還原失敗！請確認備份代碼是否複製完整。");
+        }
+        return false;
+    },
+
+    exportAllStudentsJSON() {
+        const students = this.getAllStudents();
+        const allowed = localStorage.getItem('bebras_portal_allowed_students');
+        const exportData = {
+            students: students,
+            allowed: allowed ? JSON.parse(allowed) : []
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `bebras_class_progress_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    },
+
+    importAllStudentsJSON(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.students) {
+                    this.saveAllStudents(data.students);
+                    if (data.allowed) {
+                        this.saveAllowedStudents(data.allowed);
+                    }
+                    alert("🎉 班級挑戰紀錄與名單匯入成功！");
+                    this.loadProgress(); // Reload active student and preview
+                    this.renderAdminPanel();
+                } else {
+                    alert("檔案格式不符，匯入失敗。");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("檔案解析錯誤！");
+            }
+        };
+        reader.readAsText(file);
     },
 
     deleteStudent(key) {
@@ -370,10 +526,54 @@ const App = {
             this.clearAllStudents();
         });
 
+        // Admin Save GAS URL Click
+        document.getElementById('btn-save-gas-url').addEventListener('click', () => {
+            const url = document.getElementById('admin-gas-url').value.trim();
+            this.gasUrl = url;
+            localStorage.setItem('bebras_portal_gas_url', url);
+            this.updateGasStatusUI();
+            this.renderAdminPanel();
+            alert("🔗 Google 試算表連線設定已更新！");
+        });
+
         // Logout
         document.getElementById('btn-logout').addEventListener('click', () => {
             if (confirm("確定要登出並切換帳號嗎？您的進度已儲存。")) {
                 this.logout();
+            }
+        });
+
+        // Student Backup
+        document.getElementById('btn-backup-student').addEventListener('click', () => {
+            const code = this.exportStudentCode();
+            if (code) {
+                prompt("這是您的個人進度備份碼，請複製並妥善保存：", code);
+            }
+        });
+
+        // Student Restore
+        document.getElementById('btn-restore-student').addEventListener('click', () => {
+            const code = prompt("請貼上您的進度備份碼以還原：");
+            if (code) {
+                this.importStudentCode(code);
+            }
+        });
+
+        // Admin Export JSON
+        document.getElementById('btn-export-all-json').addEventListener('click', () => {
+            this.exportAllStudentsJSON();
+        });
+
+        // Admin Trigger Import JSON
+        document.getElementById('btn-trigger-import-json').addEventListener('click', () => {
+            document.getElementById('admin-import-json-file').click();
+        });
+
+        // Admin Import JSON File Change
+        document.getElementById('admin-import-json-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.importAllStudentsJSON(file);
             }
         });
 
@@ -555,11 +755,48 @@ const App = {
         }
     },
 
-    renderAdminPanel() {
+    async renderAdminPanel() {
         this.renderRegisteredPreview();
-        const students = this.getAllStudents();
         const tbody = document.getElementById('admin-student-list');
         if (!tbody) return;
+        
+        let students = this.getAllStudents();
+
+        // If cloud sync is enabled, fetch all class list from cloud first and merge
+        if (this.gasUrl) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.95rem;">☁️ 正在載入雲端試算表記錄，請稍候...</td></tr>`;
+            try {
+                const res = await fetch(`${this.gasUrl}?action=list`);
+                const json = await res.json();
+                if (json && json.status === 'success' && json.students) {
+                    // Merge cloud records into local cache database
+                    json.students.forEach(cs => {
+                        const key = `${cs.class}_${cs.name}`;
+                        if (!students[key]) {
+                            students[key] = {
+                                class: cs.class,
+                                name: cs.name,
+                                progress: cs.progress
+                            };
+                        } else {
+                            let localStars = 0;
+                            for (const g in students[key].progress) {
+                                for (const l in students[key].progress[g]) {
+                                    if (students[key].progress[g][l] === true) localStars++;
+                                }
+                            }
+                            if (cs.stars > localStars) {
+                                students[key].progress = cs.progress;
+                            }
+                        }
+                    });
+                    this.saveAllStudents(students);
+                }
+            } catch (e) {
+                console.error("Failed to load cloud classlist:", e);
+            }
+        }
+        
         tbody.innerHTML = '';
 
         const list = [];
@@ -732,6 +969,50 @@ const App = {
             }).join(' ');
         } else {
             previewArea.style.display = 'none';
+        }
+    },
+
+    async syncStudentToCloud(studentClass, studentName, progressObj) {
+        if (!this.gasUrl) return;
+
+        let stars = 0;
+        for (const g in progressObj) {
+            for (const l in progressObj[g]) {
+                if (progressObj[g][l] === true) stars++;
+            }
+        }
+
+        const payload = {
+            action: 'save',
+            class: studentClass,
+            name: studentName,
+            progress: progressObj,
+            stars: stars
+        };
+
+        try {
+            const res = await fetch(this.gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            console.log("Cloud sync response:", json);
+        } catch (e) {
+            console.error("Cloud sync failed:", e);
+        }
+    },
+
+    updateGasStatusUI() {
+        const stateEl = document.getElementById('gas-connection-state');
+        if (!stateEl) return;
+
+        if (this.gasUrl) {
+            stateEl.textContent = "🟢 雲端同步已啟用 (Google 試算表連線中)";
+            stateEl.style.color = "#8bff8b";
+        } else {
+            stateEl.textContent = "未啟用雲端同步 (僅使用本機儲存)";
+            stateEl.style.color = "#ff8b8b";
         }
     },
 
