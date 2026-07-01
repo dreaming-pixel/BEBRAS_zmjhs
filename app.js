@@ -17,7 +17,7 @@ const App = {
     playerName: "",
     playerClass: "",
     allowedStudents: [], // Strict login registration roster
-    gasUrl: "", // Google Sheets Sync GAS Web App URL
+    gasUrl: "https://script.google.com/macros/s/AKfycbzZD41qQb-FswUm6Bw-G2ESyYcvKo72mZaHKps6Vj7PLxe2E3cavUiBwqWhHQIL3dKS5w/exec", // Google Sheets Sync GAS Web App URL
     
     // Default unlocked state (Easy is true, others false)
     progress: {
@@ -66,7 +66,7 @@ const App = {
     loadProgress() {
         // Load GAS URL
         const savedGas = localStorage.getItem('bebras_portal_gas_url');
-        this.gasUrl = savedGas || "";
+        this.gasUrl = savedGas || "https://script.google.com/macros/s/AKfycbzZD41qQb-FswUm6Bw-G2ESyYcvKo72mZaHKps6Vj7PLxe2E3cavUiBwqWhHQIL3dKS5w/exec";
 
         const gasInput = document.getElementById('admin-gas-url');
         if (gasInput) gasInput.value = this.gasUrl;
