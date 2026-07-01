@@ -243,7 +243,7 @@
                     
                     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                         <input type="text" id="admin-gas-url" placeholder="請貼上部署網址 (https://script.google.com/macros/s/.../exec)" style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; outline: none;" />
-                        <button class="modal-btn primary" id="btn-save-gas-url" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; background: var(--success); border-color: var(--success); border: none;">儲存連線 🔗</button>
+                        <button class="modal-btn primary" id="btn-save-gas-url" onclick="App.saveGasUrl()" style="padding: 0.5rem 1.5rem; font-size: 0.9rem; background: var(--success); border-color: var(--success); border: none; cursor: pointer;">儲存連線 🔗</button>
                     </div>
                     
                     <div id="gas-sync-status" style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">

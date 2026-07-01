@@ -526,15 +526,7 @@ const App = {
             this.clearAllStudents();
         });
 
-        // Admin Save GAS URL Click
-        document.getElementById('btn-save-gas-url').addEventListener('click', () => {
-            const url = document.getElementById('admin-gas-url').value.trim();
-            this.gasUrl = url;
-            localStorage.setItem('bebras_portal_gas_url', url);
-            this.updateGasStatusUI();
-            this.renderAdminPanel();
-            alert("🔗 Google 試算表連線設定已更新！");
-        });
+
 
         // Logout
         document.getElementById('btn-logout').addEventListener('click', () => {
@@ -1014,6 +1006,15 @@ const App = {
             stateEl.textContent = "未啟用雲端同步 (僅使用本機儲存)";
             stateEl.style.color = "#ff8b8b";
         }
+    },
+
+    saveGasUrl() {
+        const url = document.getElementById('admin-gas-url').value.trim();
+        this.gasUrl = url;
+        localStorage.setItem('bebras_portal_gas_url', url);
+        this.updateGasStatusUI();
+        this.renderAdminPanel();
+        alert("🔗 Google 試算表連線設定已更新！");
     },
 
     renderDashboard() {
