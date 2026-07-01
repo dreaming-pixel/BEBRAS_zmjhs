@@ -535,21 +535,7 @@ const App = {
             }
         });
 
-        // Student Backup
-        document.getElementById('btn-backup-student').addEventListener('click', () => {
-            const code = this.exportStudentCode();
-            if (code) {
-                prompt("這是您的個人進度備份碼，請複製並妥善保存：", code);
-            }
-        });
 
-        // Student Restore
-        document.getElementById('btn-restore-student').addEventListener('click', () => {
-            const code = prompt("請貼上您的進度備份碼以還原：");
-            if (code) {
-                this.importStudentCode(code);
-            }
-        });
 
         // Admin Export JSON
         document.getElementById('btn-export-all-json').addEventListener('click', () => {
