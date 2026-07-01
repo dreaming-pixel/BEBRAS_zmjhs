@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bebras 運算思維挑戰賽 - 互動遊戲樂園</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Sound Effects -->
+    <audio id="sound-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" preload="auto"></audio>
+    <audio id="sound-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-84.wav" preload="auto"></audio>
+    <audio id="sound-fail" src="https://assets.mixkit.co/active_storage/sfx/2574/2574-84.wav" preload="auto"></audio>
+    <audio id="sound-unlock" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-84.wav" preload="auto"></audio>
+
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <header class="main-header">
+            <div class="logo-area">
+                <span class="logo-icon">🦫</span>
+                <div class="logo-text">
+                    <h1>Bebras</h1>
+                    <p>運算思維挑戰賽</p>
+                </div>
+            </div>
+            <div class="user-progress-card">
+                <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; line-height: 1.4;">
+                    <div style="font-weight: bold; color: var(--primary-light);">🏫 班級：<span id="sidebar-class">-</span></div>
+                    <div style="font-weight: bold; color: var(--success-light);">👤 姓名：<span id="sidebar-name">-</span></div>
+                    <div style="font-weight: bold; color: var(--warning); margin-top: 2px;">🏆 目前排名：第 <span id="sidebar-rank">-</span> 名</div>
+                </div>
+                <div class="progress-details">
+                    <span class="rank-title" id="user-rank">初級小海狸</span>
+                    <span class="completed-count" id="completed-count">0 / 18 已完成</span>
+                </div>
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="global-progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+            <nav class="nav-links" style="display: flex; flex-direction: column; height: 100%;">
+                <button class="nav-btn active" id="nav-dashboard">🏠 主畫面</button>
+                <button class="nav-btn" id="nav-leaderboard" style="display: none;">🏆 排行榜</button>
+                <button class="nav-btn" id="btn-reset-progress">🔄 重設進度</button>
+                <button class="nav-btn" id="btn-logout" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem; color: #ff8b8b; text-align: left;">🚪 登出帳號</button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="content-view active">
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2>歡迎來到運算思維樂園！✨</h2>
+                        <p>透過 5 個精緻的互動遊戲，學習生活中的邏輯與演算法。挑戰成功就能獲得海狸升級勳章喔！</p>
+                    </div>
+                    <div class="mascot-bubble">
+                        <svg class="beaver-svg" viewBox="0 0 100 100" width="80" height="80">
+                            <!-- Beaver Body -->
+                            <ellipse cx="50" cy="55" rx="35" ry="30" fill="#8B5A2B"/>
+                            <!-- Ears -->
+                            <circle cx="25" cy="30" r="10" fill="#5C3818"/>
+                            <circle cx="75" cy="30" r="10" fill="#5C3818"/>
+                            <circle cx="25" cy="30" r="6" fill="#E6A15C"/>
+                            <circle cx="75" cy="30" r="6" fill="#E6A15C"/>
+                            <!-- Head -->
+                            <circle cx="50" cy="40" r="25" fill="#8B5A2B"/>
+                            <!-- Eyes -->
+                            <circle cx="42" cy="35" r="3.5" fill="#000"/>
+                            <circle cx="43" cy="34" r="1" fill="#fff"/>
+                            <circle cx="58" cy="35" r="3.5" fill="#000"/>
+                            <circle cx="59" cy="34" r="1" fill="#fff"/>
+                            <!-- Snout -->
+                            <ellipse cx="50" cy="45" rx="10" ry="7" fill="#E6A15C"/>
+                            <!-- Nose -->
+                            <ellipse cx="50" cy="42" rx="4" ry="2.5" fill="#000"/>
+                            <!-- Teeth -->
+                            <rect x="47" y="47" width="3" height="5" fill="#fff"/>
+                            <rect x="50" y="47" width="3" height="5" fill="#fff"/>
+                            <!-- Whiskers -->
+                            <line x1="35" y1="46" x2="25" y2="44" stroke="#000" stroke-width="1.5"/>
+                            <line x1="35" y1="48" x2="23" y2="48" stroke="#000" stroke-width="1.5"/>
+                            <line x1="65" y1="46" x2="75" y2="44" stroke="#000" stroke-width="1.5"/>
+                            <line x1="65" y1="48" x2="77" y2="48" stroke="#000" stroke-width="1.5"/>
+                        </svg>
+                        <div class="bubble-text">「準備好提升你的運算大腦了嗎？」</div>
+                    </div>
+                </div>
+
+                <div class="games-grid">
+                    <!-- Game Card 1 -->
+                    <div class="game-card" id="card-stones">
+                        <div class="card-badge">Nim Game</div>
+                        <span class="game-icon">🪨</span>
+                        <h3>撿石頭</h3>
+                        <p class="ct-concept">運算概念：賽局理論與必勝策略</p>
+                        <p class="description">與小海狸輪流拿走 1~3 顆石頭，拿到最後一顆石頭的人就獲勝！你能找出必勝的策略嗎？</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="stones" data-level="easy">初級 (9顆)</button>
+                            <button class="diff-btn locked" data-game="stones" data-level="medium">中級 (15顆) 🔒</button>
+                            <button class="diff-btn locked" data-game="stones" data-level="hard">高級 (21顆) 🔒</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Card 2 -->
+                    <div class="game-card" id="card-shoes">
+                        <div class="card-badge">Binary Search</div>
+                        <span class="game-icon">👟</span>
+                        <h3>買鞋子</h3>
+                        <p class="ct-concept">運算概念：二元搜尋法</p>
+                        <p class="description">展示櫃的鞋子依長寬從小排到大。每次試穿能得到長度與寬度回饋。用最少次數幫海狸挑出合適的鞋子！</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="shoes" data-level="easy">初級 (3x3)</button>
+                            <button class="diff-btn locked" data-game="shoes" data-level="medium">中級 (5x5) 🔒</button>
+                            <button class="diff-btn locked" data-game="shoes" data-level="hard">高級 (7x7) 🔒</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Card 3 -->
+                    <div class="game-card" id="card-river">
+                        <div class="card-badge">Shortest Path</div>
+                        <span class="game-icon">🪵</span>
+                        <h3>河道運輸</h3>
+                        <p class="ct-concept">運算概念：最佳化路徑 (戴克斯特拉演算法)</p>
+                        <p class="description">小海狸要把 50 根木頭運回家，但急流河道會隨機沖走固定數量的木頭。規劃損失最少的路線回家吧！</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="river" data-level="easy">初級</button>
+                            <button class="diff-btn locked" data-game="river" data-level="medium">中級 (2024題) 🔒</button>
+                            <button class="diff-btn locked" data-game="river" data-level="hard">高級 🔒</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Card 4 -->
+                    <div class="game-card" id="card-chat">
+                        <div class="card-badge">Topological Sort</div>
+                        <span class="game-icon">💬</span>
+                        <h3>聊天順序</h3>
+                        <p class="ct-concept">運算概念：拓撲排序 (有向無環圖)</p>
+                        <p class="description">娜娜邀請好友參加生日派對，大家聊天的先後順序有著層層限制。排序出完美的聊天時程！</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="chat" data-level="easy">初級 (4人)</button>
+                            <button class="diff-btn locked" data-game="chat" data-level="medium">中級 (5人題) 🔒</button>
+                            <button class="diff-btn locked" data-game="chat" data-level="hard">高級 (7人) 🔒</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Card 5 -->
+                    <div class="game-card" id="card-taxi">
+                        <div class="card-badge">Algorithm Execution</div>
+                        <span class="game-icon">🚕</span>
+                        <h3>自動駕駛的計程車</h3>
+                        <p class="ct-concept">運算概念：演算法模擬與幾何向量</p>
+                        <p class="description">計程車依固定規則前進：直走、岔路選擇與目的地夾角最小的路、死路迴轉。預測它會經過哪些路口！</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="taxi" data-level="easy">初級 (1岔路)</button>
+                            <button class="diff-btn locked" data-game="taxi" data-level="medium">中級 (Bebras題) 🔒</button>
+                            <button class="diff-btn locked" data-game="taxi" data-level="hard">高級 (複雜迷宮) 🔒</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Card 6 -->
+                    <div class="game-card" id="card-aquaponics">
+                        <div class="card-badge">Ecology Graph</div>
+                        <span class="game-icon">🐟</span>
+                        <h3>魚菜共生生態圈</h3>
+                        <p class="ct-concept">運算概念：資源最佳化與路徑設計</p>
+                        <p class="description">設計魚菜共生系統！鋪設水管建立循環迴路，匹配合適的馬達水壓，並精準配對魚與植物以維持生態平衡。</p>
+                        <div class="difficulty-selectors">
+                            <button class="diff-btn" data-game="aquaponics" data-level="easy">初級 (鋪設水管)</button>
+                            <button class="diff-btn locked" data-game="aquaponics" data-level="medium">中級 (動力分流) 🔒</button>
+                            <button class="diff-btn locked" data-game="aquaponics" data-level="hard">高級 (生態平衡) 🔒</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboard View Container -->
+            <section id="view-leaderboard" class="content-view">
+                <div class="welcome-banner" style="margin-bottom: 1.5rem;">
+                    <div class="welcome-text">
+                        <h2>🏆 Bebras 挑戰積分排行榜</h2>
+                        <p>與班上其他海狸選手一較高下！每通過一個關卡就能獲得 1 顆星等，努力爬上第一名吧！</p>
+                    </div>
+                </div>
+
+                <div class="leaderboard-header-card" style="display: flex; gap: 1rem; align-items: center; background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                    <span style="font-size: 2rem;">🦫</span>
+                    <div style="flex: 1; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <h3 style="margin: 0; font-size: 1.1rem; white-space: nowrap;">您的參賽暱稱：</h3>
+                        <input type="text" id="leaderboard-name-input" placeholder="輸入您的名字..." style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1rem; border-radius: 6px; font-size: 1rem; width: 220px; outline: none;" />
+                        <button class="modal-btn primary" id="btn-save-name" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">儲存暱稱</button>
+                    </div>
+                </div>
+
+                <div class="leaderboard-table-container" style="background: rgba(0,0,0,0.15); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.5rem; overflow-x: auto;">
+                    <h3 style="margin: 0 0 1rem 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary-light);">🏆 班級海狸挑戰賽排行</h3>
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">名次</th>
+                                <th>選手</th>
+                                <th style="text-align: center; width: 150px;">完成關卡 (星等)</th>
+                                <th>海狸稱號</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-list">
+                            <!-- Dynamic Leaderboard list -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin Panel View Container -->
+            <section id="view-admin" class="content-view">
+                <div class="welcome-banner" style="margin-bottom: 1.5rem;">
+                    <div class="welcome-text">
+                        <h2>🔑 系統管理員後台</h2>
+                        <p>查看本機上所有學生的挑戰成績、通關細節與排名。</p>
+                    </div>
+                    <button class="modal-btn secondary" id="btn-admin-logout" style="padding: 0.5rem 1rem;">🚪 退出管理員</button>
+                </div>
+
+                <!-- Admin Student Registration Import Card -->
+                <div style="background: rgba(0,0,0,0.15); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0 0 1rem 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary-light);">📤 匯入註冊學生名單</h3>
+                    
+                    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                        <!-- Image Upload Card -->
+                        <div style="flex: 1; min-width: 250px; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📷</span>
+                            <h4 style="margin: 0 0 0.5rem 0;">上傳課表/名單圖檔 (OCR 辨識)</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.4;">上傳名單圖片（包含「班級」與「姓名」欄位），系統將使用 OCR 技術自動辨識並完成學生註冊。</p>
+                            
+                            <input type="file" id="admin-upload-image" accept="image/*" style="display: none;" />
+                            <button class="modal-btn primary" id="btn-trigger-upload" style="padding: 0.5rem 1.5rem; font-size: 0.9rem;">選擇圖片上傳 📂</button>
+                            
+                            <div id="ocr-loading-status" style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-light); display: none; align-items: center; gap: 6px;">
+                                <span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid var(--primary-light); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                                正在辨識圖檔中，請稍候...
+                            </div>
+                        </div>
+
+                        <!-- Manual Text Import Card -->
+                        <div style="flex: 1; min-width: 250px; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); display: flex; flex-direction: column;">
+                            <h4 style="margin: 0 0 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>✍️ 手動貼上文字名單</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(備用/手動修正)</span>
+                            </h4>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; line-height: 1.4;">格式：每行一個學生，班級與姓名間以空格分隔。</p>
+                            <textarea id="admin-import-text" placeholder="例如：&#10;701 謝志偉&#10;701 張香晟&#10;702 吳昊承" style="flex: 1; min-height: 90px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; resize: none; outline: none; font-family: monospace;"></textarea>
+                            <button class="modal-btn secondary" id="btn-import-text-submit" style="margin-top: 0.8rem; padding: 0.4rem 1rem; font-size: 0.85rem; align-self: flex-end;">匯入文字名單 ✍️</button>
+                        </div>
+                    </div>
+
+                    <!-- List of registered names preview -->
+                    <div id="registered-preview-area" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h4 style="margin: 0; color: var(--text-main); font-size: 0.95rem;">📋 已註冊學生名單 (<span id="registered-count-text">0</span> 位)</h4>
+                            <button class="text-btn" id="btn-clear-registered-list" style="color: #ff8b8b; font-size: 0.8rem; text-decoration: underline; cursor: pointer;">清空註冊名單</button>
+                        </div>
+                        <div id="registered-names-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.25); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
+                            <!-- Names preview here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.15); border-radius: var(--radius-lg); border: 1px solid var(--border-color); padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <h3 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary-light);">👥 學生挑戰紀錄清單</h3>
+                        <button class="modal-btn secondary" id="btn-clear-all-students" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ff8b8b; font-size: 0.9rem; padding: 0.5rem 1rem;">🚨 清除所有學生資料</button>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px; text-align: center;">名次</th>
+                                    <th>班級</th>
+                                    <th>姓名</th>
+                                    <th style="text-align: center; width: 100px;">總星等</th>
+                                    <th>詳細進度比率</th>
+                                    <th style="width: 120px; text-align: center;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-student-list">
+                                <!-- Dynamic admin student records -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Game View Container -->
+            <section id="view-game" class="content-view">
+                <div class="game-header">
+                    <button class="btn-back" id="btn-exit-game">⬅️ 返回大廳</button>
+                    <div class="game-title-container">
+                        <h2 id="current-game-title">遊戲標題</h2>
+                        <span class="badge" id="current-game-level">難度</span>
+                    </div>
+                </div>
+
+                <div class="game-layout">
+                    <!-- Game Arena (Left) -->
+                    <div class="game-arena">
+                        <div id="game-stage">
+                            <!-- Dynamic Content loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Game Instructions & Control Panel (Right) -->
+                    <div class="game-sidebar">
+                        <div class="sidebar-block info-block">
+                            <h3>📜 任務說明</h3>
+                            <div id="game-instructions">詳細說明...</div>
+                        </div>
+
+                        <div class="sidebar-block interactive-panel">
+                            <h3>🎮 控制面板</h3>
+                            <div id="game-controls">載入中...</div>
+                        </div>
+
+                        <div class="sidebar-block ct-explanation-block hidden" id="ct-explanation-container">
+                            <h3>🧠 運算思維解析</h3>
+                            <div id="ct-explanation">通關後解鎖...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Success/Failure Notification Modal -->
+    <div class="modal" id="game-modal">
+        <div class="modal-content">
+            <span class="modal-icon" id="modal-icon">🎉</span>
+            <h2 id="modal-title">恭喜通關！</h2>
+            <p id="modal-desc">你成功完成了這個級別的挑戰。</p>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" id="modal-btn-next">解鎖下一關</button>
+                <button class="modal-btn secondary" id="modal-btn-retry">再試一次</button>
+                <button class="modal-btn text-btn" id="modal-btn-close">返回大廳</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Overlay Screen -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <span style="font-size: 3rem; margin-bottom: 0.5rem; display: block;">🦫</span>
+            <h2>Bebras 運算思維挑戰賽</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">請輸入您的班級與姓名以開始挑戰</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem; text-align: left; margin-bottom: 1.5rem;">
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 4px;">班級 (例如: 701)</label>
+                    <input type="text" id="login-class" placeholder="請輸入班級..." style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 1rem; outline: none;" />
+                </div>
+                <div>
+                    <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 4px;">姓名 (例如: 張小明)</label>
+                    <input type="text" id="login-name" placeholder="請輸入姓名..." style="width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; font-size: 1rem; outline: none;" />
+                </div>
+            </div>
+
+            <div id="login-error-msg" style="color: #ef4444; font-size: 0.9rem; margin-bottom: 1rem; text-align: center; display: none; font-weight: bold; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 6px 12px; border-radius: 6px;">
+                ❌ 輸入錯誤！此班級或姓名不在註冊名單中。
+            </div>
+
+            <button class="modal-btn primary" id="btn-login" style="width: 100%; padding: 0.75rem; font-size: 1.1rem; margin-bottom: 1rem;">開始挑戰 🚀</button>
+            
+            <div style="display: flex; justify-content: center; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem; font-size: 0.85rem;">
+                <button class="text-btn" id="btn-admin-trigger" style="color: var(--text-muted); text-decoration: underline; cursor: pointer;">🔑 管理員登入</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Assets & Code -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="games/stones.js"></script>
+    <script src="games/shoes.js"></script>
+    <script src="games/river.js"></script>
+    <script src="games/chat.js"></script>
+    <script src="games/taxi.js"></script>
+    <script src="games/aquaponics.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
