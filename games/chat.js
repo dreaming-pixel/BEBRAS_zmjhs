@@ -41,7 +41,7 @@ window.GameChat = {
         this.rules = [
             {
                 text: '🌸 任何時候都可以跟<b>小美</b>聊天。',
-                check: (p) => true // No pre-reqs
+                check: (p) => p.includes('小美') ? 'passed' : 'pending'
             },
             {
                 text: '🎒 必須先與<b>小美</b>聊天後才能與<b>小明</b>聊天。',
@@ -82,7 +82,7 @@ window.GameChat = {
         this.rules = [
             {
                 text: '💬 我任何時候都可跟<b>小萱</b>聊天。',
-                check: (p) => true
+                check: (p) => p.includes('小萱') ? 'passed' : 'pending'
             },
             {
                 text: '❤️ 我必須先與<b>小愛</b>聊天後才能與<b>戴哥</b>聊天。',
@@ -134,7 +134,7 @@ window.GameChat = {
         this.rules = [
             {
                 text: '💬 <b>小萱</b>可以隨時聊天。',
-                check: (p) => true
+                check: (p) => p.includes('小萱') ? 'passed' : 'pending'
             },
             {
                 text: '⚡️ <b>阿凱</b>必須先跟<b>婷婷</b>聊完才能聊。',
