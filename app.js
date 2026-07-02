@@ -85,6 +85,11 @@ const App = {
             this.allowedStudents = [];
         }
 
+        // Asynchronously fetch allowed roster from cloud if connected
+        if (this.gasUrl) {
+            this.fetchRosterFromCloud();
+        }
+
         const currentStudentKey = localStorage.getItem('bebras_portal_current_student');
         if (currentStudentKey) {
             const students = this.getAllStudents();
@@ -698,16 +703,47 @@ const App = {
         if (nameInput) nameInput.value = this.playerName;
 
         const rankingList = this.getRankingList();
+        
+        // Slice top 20
+        let displayList = rankingList.slice(0, 20);
+        
+        // If the student is not in the top 20, append them at the end with their correct rank
+        const isSelfInTop20 = displayList.some(item => item.isSelf);
+        if (!isSelfInTop20) {
+            const selfItem = rankingList.find(item => item.isSelf);
+            if (selfItem) {
+                const selfRank = rankingList.indexOf(selfItem) + 1;
+                // Add separator
+                displayList.push({
+                    name: "...",
+                    class: "",
+                    stars: "",
+                    rankTitle: "",
+                    isSeparator: true
+                });
+                displayList.push({
+                    ...selfItem,
+                    rankNumOverride: selfRank
+                });
+            }
+        }
 
         // Render rows
         const tbody = document.getElementById('leaderboard-list');
         if (tbody) {
             tbody.innerHTML = '';
-            rankingList.forEach((item, index) => {
+            displayList.forEach((item, index) => {
+                if (item.isSeparator) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td colspan="4" style="text-align: center; color: var(--text-muted); padding: 8px 0; font-size: 0.9rem;">••• 您在這裡 •••</td>`;
+                    tbody.appendChild(tr);
+                    return;
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = `leaderboard-row ${item.isSelf ? 'self' : ''}`;
                 
-                const rankNum = index + 1;
+                const rankNum = item.rankNumOverride || (index + 1);
                 let rankBadgeHtml = '';
                 if (rankNum === 1) {
                     rankBadgeHtml = `<span class="rank-badge rank-1">1</span>`;
@@ -877,6 +913,9 @@ const App = {
         this.allowedStudents = list;
         localStorage.setItem('bebras_portal_allowed_students', JSON.stringify(list));
         this.renderRegisteredPreview();
+        if (this.gasUrl) {
+            this.syncRosterToCloud(list);
+        }
     },
 
     importTextList(text) {
@@ -887,8 +926,19 @@ const App = {
 
         const parsed = this.parseOCRText(text);
         if (parsed.length > 0) {
-            this.saveAllowedStudents(parsed);
-            alert(`手動匯入成功！已註冊 ${parsed.length} 位學生。`);
+            // Merge with existing roster, avoiding duplicates
+            const current = this.allowedStudents || [];
+            const merged = [...current];
+            let addedCount = 0;
+            parsed.forEach(p => {
+                const duplicate = merged.some(item => String(item.class).trim() === String(p.class).trim() && String(item.name).trim() === String(p.name).trim());
+                if (!duplicate) {
+                    merged.push(p);
+                    addedCount++;
+                }
+            });
+            this.saveAllowedStudents(merged);
+            alert(`手動匯入成功！新增了 ${addedCount} 位學生，目前註冊清冊共 ${merged.length} 位學生。`);
             document.getElementById('admin-import-text').value = '';
         } else {
             alert("無法解析輸入文字，請確保每一行都包含「班級」與「姓名」，並以空格隔開。");
@@ -918,8 +968,19 @@ const App = {
             const parsed = this.parseOCRText(text);
             
             if (parsed.length > 0) {
-                this.saveAllowedStudents(parsed);
-                alert(`圖檔辨識匯入成功！已自動註冊 ${parsed.length} 位學生名單！`);
+                // Merge with existing roster, avoiding duplicates
+                const current = this.allowedStudents || [];
+                const merged = [...current];
+                let addedCount = 0;
+                parsed.forEach(p => {
+                    const duplicate = merged.some(item => String(item.class).trim() === String(p.class).trim() && String(item.name).trim() === String(p.name).trim());
+                    if (!duplicate) {
+                        merged.push(p);
+                        addedCount++;
+                    }
+                });
+                this.saveAllowedStudents(merged);
+                alert(`圖檔辨識匯入成功！新增了 ${addedCount} 位學生，目前註冊清冊共 ${merged.length} 位學生！`);
             } else {
                 alert("辨識結果中找不到清晰的「班級」與「姓名」欄位！請確認圖片品質，或改用手動貼上文字名單。");
             }
@@ -942,11 +1003,54 @@ const App = {
             previewArea.style.display = 'block';
             countText.textContent = this.allowedStudents.length;
             
-            listDiv.innerHTML = this.allowedStudents.map(s => {
-                return `<span style="background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); white-space: nowrap;">[${s.class}] ${s.name}</span>`;
+            listDiv.innerHTML = this.allowedStudents.map((s, idx) => {
+                return `
+                    <span style="background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;">
+                        <span>[${s.class}] ${s.name}</span>
+                        <span onclick="App.deleteRegisteredStudent(${idx})" style="color: #ff8b8b; cursor: pointer; font-weight: bold; font-size: 1.1rem; line-height: 1; padding: 0 2px;" title="刪除此學生">×</span>
+                    </span>
+                `;
             }).join(' ');
         } else {
             previewArea.style.display = 'none';
+        }
+    },
+
+    deleteRegisteredStudent(index) {
+        if (confirm("確定要將該學生從註冊名單中刪除嗎？\n此動作也會自動同步更新至雲端試算表。")) {
+            this.allowedStudents.splice(index, 1);
+            this.saveAllowedStudents(this.allowedStudents);
+        }
+    },
+
+    async syncRosterToCloud(list) {
+        if (!this.gasUrl) return;
+        try {
+            await fetch(this.gasUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'saveRoster',
+                    list: list
+                })
+            });
+        } catch (e) {
+            console.error("Failed to sync roster to cloud:", e);
+        }
+    },
+
+    async fetchRosterFromCloud() {
+        if (!this.gasUrl) return;
+        try {
+            const res = await fetch(`${this.gasUrl}?action=getRoster`);
+            const json = await res.json();
+            if (json && json.status === 'success' && json.roster) {
+                this.allowedStudents = json.roster;
+                localStorage.setItem('bebras_portal_allowed_students', JSON.stringify(this.allowedStudents));
+                this.renderRegisteredPreview();
+            }
+        } catch (e) {
+            console.error("Failed to fetch cloud roster:", e);
         }
     },
 

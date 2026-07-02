@@ -283,14 +283,15 @@ window.GameTaxi = {
 
     renderInstructions() {
         let desc = `
-            <p><b>自動駕駛計程車：</b> 一台自駕計程車行進的決策演算法如下：</p>
-            <ol>
-                <li>沒有岔路時，持續沿著路前進。</li>
-                <li>遇到有岔路的路口時，選擇<b>與目的地所形成夾角較小</b>的岔路前進。</li>
-                <li>遇到死路（路底或房屋）時就迴轉。</li>
+            <p><b>🚕 自動駕駛計程車：</b></p>
+            <p>計程車會依序執行以下三條精確的演算法規則：</p>
+            <ol style="margin-left: 1.25rem; margin-bottom: 0.8rem; line-height: 1.5;">
+                <li><b>沒有岔路時：</b>持續沿著路前進。</li>
+                <li><b>遇到有岔路的路口時：</b>在所有往前分支的道路方向中，選擇與<b>「指向黃色目的地的向量方向」夾角最小</b>的一條路前進。（不走回頭路）</li>
+                <li><b>遇到死路（路底房屋或樹木）時：</b>原地 180 度迴轉。</li>
             </ol>
-            <p>目標是前往<b>黃色雙圓目的地</b>。請仔細推演計程車前進的路線！</p>
-            <p>在右側輸入計程車將會<b>依序經過的「路口英文字母」</b>（例如：<code>EF</code>，若路口重複經過請重複輸入，如 <code>EAEB</code>），然後點選「啟動自動駕駛」進行驗證！</p>
+            <p style="margin-bottom: 0.8rem;">🎯 <b>任務目標：</b> 推演計程車從起點出發前往<b>黃色雙圓目的地</b>所依序經過的<b>所有「有標記字母的路口」</b>！</p>
+            <p style="color: var(--warning); font-size: 0.9rem;">💡 <b>提示：</b> 請在右側控制面板的輸入框中，依序填入經過的路口（例如：<code>EF</code>。若有路口被重複經過，請重複輸入，如 <code>EAEB</code>），然後點選「啟動自動駕駛」驗證您的推演路徑！</p>
         `;
         document.getElementById('game-instructions').innerHTML = desc;
     },
@@ -304,15 +305,15 @@ window.GameTaxi = {
                 <div class="taxi-status-bar" id="taxi-status" style="font-size: 1.1rem; font-weight: 700; background: rgba(255,255,255,0.05); padding: 0.6rem 1.5rem; border-radius: 30px; border: 1px solid var(--border-color); width: 85%; text-align: center;">
                     請在右側控制面板輸入預測的路口序列。
                 </div>
-
+ 
                 <!-- SVG Map View -->
-                <div class="svg-container" style="width: 100%; max-width: 650px; background: rgba(15,23,42,0.4); border-radius: var(--radius-lg); border: 1px solid var(--border-color); overflow: hidden; padding: 10px;">
+                <div class="svg-container" style="width: 100%; max-width: 800px; background: rgba(15,23,42,0.4); border-radius: var(--radius-lg); border: 1px solid var(--border-color); overflow: hidden; padding: 12px;">
                     <svg id="taxi-svg" viewBox="0 0 650 480" style="width: 100%; height: auto;">
                         <g id="taxi-roads"></g>
-                        <!-- Destination Element -->
-                        <g id="taxi-dest-group"></g>
                         <!-- Labeled Nodes -->
                         <g id="taxi-junctions-nodes"></g>
+                        <!-- Destination Element (Drawn on top of nodes) -->
+                        <g id="taxi-dest-group" style="pointer-events: none;"></g>
                         <!-- Car element -->
                         <g id="taxi-car-group"></g>
                     </svg>
@@ -361,22 +362,26 @@ window.GameTaxi = {
             roads.appendChild(innerLine);
         });
 
-        // Draw Destination
+        // Draw Destination (Hollow target styling to not cover node letters)
         const dCircleOuter = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dCircleOuter.setAttribute('cx', this.destination.x);
         dCircleOuter.setAttribute('cy', this.destination.y);
-        dCircleOuter.setAttribute('r', '15');
-        dCircleOuter.setAttribute('fill', 'rgba(245, 158, 11, 0.2)');
+        dCircleOuter.setAttribute('r', '20'); // Outer dotted circle (larger than node circle)
+        dCircleOuter.setAttribute('fill', 'rgba(245, 158, 11, 0.1)');
         dCircleOuter.setAttribute('stroke', 'var(--warning)');
-        dCircleOuter.setAttribute('stroke-width', '3');
-        dCircleOuter.setAttribute('stroke-dasharray', '3,3');
+        dCircleOuter.setAttribute('stroke-width', '2');
+        dCircleOuter.setAttribute('stroke-dasharray', '4,3');
+        dCircleOuter.setAttribute('pointer-events', 'none');
         destGroup.appendChild(dCircleOuter);
 
         const dCircleInner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         dCircleInner.setAttribute('cx', this.destination.x);
         dCircleInner.setAttribute('cy', this.destination.y);
-        dCircleInner.setAttribute('r', '6');
-        dCircleInner.setAttribute('fill', 'var(--warning)');
+        dCircleInner.setAttribute('r', '9'); // Inner solid ring
+        dCircleInner.setAttribute('fill', 'none');
+        dCircleInner.setAttribute('stroke', 'var(--warning)');
+        dCircleInner.setAttribute('stroke-width', '2');
+        dCircleInner.setAttribute('pointer-events', 'none');
         destGroup.appendChild(dCircleInner);
 
         // Draw Nodes
@@ -384,24 +389,53 @@ window.GameTaxi = {
             const node = this.nodes[nodeId];
             if (nodeId.includes('dead')) continue; // Skip fake deadends
 
+            const gNode = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            gNode.style.cursor = 'pointer';
+
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', node.x);
             circle.setAttribute('cy', node.y);
-            circle.setAttribute('r', '13');
+            circle.setAttribute('r', '15'); // Slightly larger circle for better click target
             circle.setAttribute('fill', '#1e293b');
             circle.setAttribute('stroke', node.type === 'junction' ? 'var(--primary)' : 'var(--text-muted)');
-            circle.setAttribute('stroke-width', '2');
-            nodesGroup.appendChild(circle);
+            circle.setAttribute('stroke-width', '2.5');
+            gNode.appendChild(circle);
 
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', node.x);
-            text.setAttribute('y', node.y + 4);
+            text.setAttribute('y', node.y + 4.5);
             text.setAttribute('text-anchor', 'middle');
             text.setAttribute('fill', 'var(--text-main)');
             text.setAttribute('font-size', '12px');
             text.setAttribute('font-weight', 'bold');
+            text.setAttribute('pointer-events', 'none'); // Allow clicks to pass to group
             text.textContent = nodeId;
-            nodesGroup.appendChild(text);
+            gNode.appendChild(text);
+
+            // Click node to append letter to guess input
+            gNode.onclick = () => {
+                if (this.isAnimating) return;
+                Sound.play('click');
+                this.userGuess += nodeId;
+                const input = document.getElementById('input-taxi-guess');
+                if (input) {
+                    input.value = this.userGuess;
+                    input.dispatchEvent(new Event('input'));
+                }
+            };
+
+            // Hover highlight effect
+            gNode.onmouseover = () => {
+                if (this.isAnimating) return;
+                circle.setAttribute('fill', 'rgba(99, 102, 241, 0.4)');
+                circle.setAttribute('stroke', 'var(--success)');
+            };
+            gNode.onmouseout = () => {
+                circle.setAttribute('fill', '#1e293b');
+                circle.setAttribute('stroke', node.type === 'junction' ? 'var(--primary)' : 'var(--text-muted)');
+            };
+
+            nodesGroup.appendChild(gNode);
         }
 
         // Draw Dead Ends (House / Trees icon representation)
@@ -417,13 +451,13 @@ window.GameTaxi = {
             }
         });
 
-        // Draw Taxi (Car)
+        // Draw Taxi (Car) - Enlarged by 1.6x
         const car = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         car.setAttribute('id', 'taxi-car');
         car.setAttribute('x', this.taxi.x);
-        car.setAttribute('y', this.taxi.y + 6);
+        car.setAttribute('y', this.taxi.y + 11);
         car.setAttribute('text-anchor', 'middle');
-        car.setAttribute('font-size', '20px');
+        car.setAttribute('font-size', '32px');
         car.textContent = '🚕';
         car.style.transition = 'all 0.05s linear';
         carGroup.appendChild(car);
@@ -506,7 +540,7 @@ window.GameTaxi = {
 
             // Update DOM element position and rotation
             car.setAttribute('x', tx);
-            car.setAttribute('y', ty + 6);
+            car.setAttribute('y', ty + 11);
             
             // Adjust car direction emoji rotation
             let angle = Math.atan2(tdy, tdx) * 180 / Math.PI;
@@ -548,7 +582,7 @@ window.GameTaxi = {
                 statusBar.innerHTML = '🛑 遇到死路！執行安全迴轉。';
             }
 
-            if (hitNode && hitNode !== lastNode) {
+            if (hitNode && hitNode !== this.taxi.lastNode) {
                 // Hit a real node
                 if (this.nodes[hitNode].type === 'junction') {
                     this.taxi.currentPath.push(hitNode);

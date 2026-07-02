@@ -126,7 +126,7 @@ window.GameShoes = {
                 cell.className = 'shoe-cell';
                 
                 // Style cell
-                const cellSize = this.gridSize === 3 ? '85px' : this.gridSize === 5 ? '60px' : '45px';
+                const cellSize = this.gridSize === 3 ? '120px' : this.gridSize === 5 ? '90px' : '70px';
                 cell.style.width = cellSize;
                 cell.style.height = cellSize;
                 cell.style.borderRadius = '8px';
@@ -178,7 +178,7 @@ window.GameShoes = {
                 // Draw a simple shoe representation inside the cell using CSS/Emoji
                 const shoeEmoji = document.createElement('span');
                 shoeEmoji.textContent = '👟';
-                shoeEmoji.style.fontSize = this.gridSize === 3 ? '2rem' : this.gridSize === 5 ? '1.4rem' : '1.1rem';
+                shoeEmoji.style.fontSize = this.gridSize === 3 ? '3.5rem' : this.gridSize === 5 ? '2.5rem' : '1.8rem';
                 shoeEmoji.style.filter = showHint ? 'grayscale(100%)' : 'none';
                 cell.appendChild(shoeEmoji);
 
